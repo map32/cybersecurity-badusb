@@ -9,7 +9,11 @@
     <h2>Welcome to FlaskApp!</h2>
     <div style="width: 100%; margin: auto">
         {% for log in logs %}
-        <div style="padding: 10px; background-color: #EEE; margin: 20px">
+        <div style="width: 25%lpadding:10px;background-color:#EEE;margin:20px">
+            <p>{{log['ip']}}</p>
+            <p>{{log['name']}}</p>
+        </div>
+        <div style="width: 75%;padding: 10px; background-color: #EEE; margin: 20px">
             <p style="font-size: 24px">{{ log['content'] }}</p>
         </div>
         {% endfor %}

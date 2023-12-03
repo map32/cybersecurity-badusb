@@ -21,7 +21,7 @@ def hello_world():
 def post():
     if request.method == 'POST':
         elem = request.get_json()
-        data['data'].append({'content':elem['data'],'timestamp':create_timestamp()})
+        data['data'].append({'content':elem.get('data',''),'timestamp':create_timestamp(),'name':elem.get('name',''),'ip':elem.get('ip','')})
         with open('data.json', 'w') as f:
             json.dump(data, f)
     else:
@@ -32,4 +32,4 @@ if __name__ == '__main__':
    with open('data.json','r') as f:
       data = json.load(f)
       print(data)
-   app.run(host="0.0.0.0", debug=True)
+   app.run(host="0.0.0.0")
