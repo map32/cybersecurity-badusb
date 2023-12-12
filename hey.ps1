@@ -1,7 +1,7 @@
 function Send-Data($assoc)
 {
-  $res = Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -uri "http://ifconfig.me/ip").Content)
-  $ip = $res | Select-String -Pattern \d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d? | foreach {$_.Matches.Value}
+  $res = (Invoke-WebRequest -uri "http://ifconfig.me/ip").Content
+  $ip = $res
   $hostn = hostname
   $headers = @{
     "Content-Type" = "application/json"
