@@ -29,7 +29,12 @@ def post():
     return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
-   with open('data.json','r') as f:
-      data = json.load(f)
-      print(data)
-   app.run(host="0.0.0.0")
+    try:
+        with open('data.json','r') as f:
+            data = json.load(f)
+            print(data)
+    except FileNotFoundError:
+        with open('data.json','w+') as f:
+            data = {'data':[]}
+            json.dump(data,f)     
+    app.run(host="0.0.0.0")
