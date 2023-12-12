@@ -3,7 +3,7 @@
 from flask import Flask, render_template, request, jsonify
 import json
 from datetime import datetime
-
+data = {'data':[]}
 app = Flask(__name__)
 def create_timestamp():
     now = datetime.now()
